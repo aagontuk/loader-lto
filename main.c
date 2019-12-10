@@ -33,15 +33,18 @@ int main(int argc, char *argv[]){
             
             funcs = get_func_list(fd, &ehdr, &funcs_len);
             sort_func_list(funcs, funcs_len);
+            print_func_list(funcs, funcs_len);
 
-            char *new_funcs[] = {"__x86.get_pc_thunk.bx",
-                "deregister_tm_clones", "register_tm_clones",
-                "__do_global_dtors_aux", "frame_dummy",
-                "__x86.get_pc_thunk.dx", "main", "t_func_2",
-                "t_func_1", "__x86.get_pc_thunk.ax"};
+            func_t new_funcs[] = {{"__x86.get_pc_thunk.bx", 0},
+                {"deregister_tm_clones", 0}, {"register_tm_clones", 0},
+                {"__do_global_dtors_aux", 0}, {"frame_dummy", 0},
+                {"__x86.get_pc_thunk.dx", 0}, {"main", 0}, {"t_func_2", 0},
+                {"t_func_1", 0}, {"__x86.get_pc_thunk.ax", 0}};
 
             reorder_seg_text(fd, text_segment, &seg_text_phdr,
                     sec_text_shdr, funcs, &funcs_len, new_funcs);
+            
+            print_func_list(new_funcs, funcs_len);
 
         }
         else{

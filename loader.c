@@ -64,7 +64,7 @@ int reorder_seg_text(int fd, unsigned char *seg_text,
                         Elf32_Phdr *seg_text_phdr,
                         Elf32_Shdr *sec_text_shdr,
                         func_t *cur_func_order,
-                        int *len, char *new_func_order[]){
+                        int *len, func_t *new_func_order){
 
 
     int fun_start, fun_end, fun_len;
@@ -80,7 +80,7 @@ int reorder_seg_text(int fd, unsigned char *seg_text,
     int text_end = sec_text_shdr->sh_offset + sec_text_shdr->sh_size; 
 
     for(int i = 0; i < *len; i++){
-        int index = search_func_in_list(cur_func_order, *len, new_func_order[i]); 
+        int index = search_func_in_list(cur_func_order, *len, new_func_order[i].name); 
         fun_start = cur_func_order[index].offset;
         
         if(index == (*len) - 1){
@@ -95,6 +95,9 @@ int reorder_seg_text(int fd, unsigned char *seg_text,
         /* copy function data into new segment */
         memcpy(new_seg_text + bytes_writen, seg_text +
                 (fun_start - seg_base), fun_len);
+
+        /* Update function offset */
+        new_func_order[i].offset = seg_base + bytes_writen;
         
         bytes_writen += fun_len;
     }
@@ -112,7 +115,6 @@ int reorder_seg_text(int fd, unsigned char *seg_text,
 
     return nbytes;
 }
-
 
 func_t *get_func_list(int fd, Elf32_Ehdr *ehdr, int *len){
     Elf32_Shdr sym_shdr = get_sec_from_name(fd, ehdr, ".symtab");
