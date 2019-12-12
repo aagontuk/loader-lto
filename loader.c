@@ -116,6 +116,52 @@ int reorder_seg_text(int fd, unsigned char *seg_text,
     return nbytes;
 }
 
+void update_sym_tab(int fd, Elf32_Ehdr *ehdr,
+                        func_t *new_funcs, int len){
+    
+    Elf32_Shdr sym_shdr = get_sec_from_name(fd, ehdr, ".symtab");
+    Elf32_Shdr strtab_shdr = get_sec_from_name(fd, ehdr, ".strtab");
+    Elf32_Shdr text_shdr = get_sec_from_name(fd, ehdr, ".text");
+    Elf32_Sym sym;
+    char *strtab = malloc(strtab_shdr.sh_size);
+    
+    /* text section boundary */
+    int text_start = text_shdr.sh_offset;
+    int text_end = text_start + text_shdr.sh_size;
+
+    /* Go to strtab offset */
+    lseek(fd, strtab_shdr.sh_offset, SEEK_SET);
+
+    /* read strtab */
+    read(fd, strtab, strtab_shdr.sh_size);
+
+    /* Go to sym table offset */
+    lseek(fd, sym_shdr.sh_offset, SEEK_SET);
+
+    /* Iterate through symbols */
+    int sym_num = sym_shdr.sh_size / sizeof(Elf32_Sym);
+
+    for(int i = 0; i < sym_num; i++){
+        read(fd, &sym, sizeof(Elf32_Sym));
+        
+        /* Only functions that are in text section */
+        if(ELF32_ST_TYPE(sym.st_info) == STT_FUNC &&
+                sym.st_value >= text_start &&
+                sym.st_value <= text_end){
+
+            /* Change offset of the symbol */
+            char *fun_name = strtab + sym.st_name;
+            int index = search_func_in_list(new_funcs, len,
+                    fun_name);
+            sym.st_value = new_funcs[index].offset;
+
+            /* write new symbol to file */
+            lseek(fd, -sizeof(Elf32_Sym), SEEK_CUR);
+            write(fd, &sym, sizeof(Elf32_Sym));
+         }
+    }
+}
+
 func_t *get_func_list(int fd, Elf32_Ehdr *ehdr, int *len){
     Elf32_Shdr sym_shdr = get_sec_from_name(fd, ehdr, ".symtab");
     Elf32_Shdr strtab_shdr = get_sec_from_name(fd, ehdr, ".strtab");

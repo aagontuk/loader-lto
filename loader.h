@@ -34,6 +34,10 @@ int reorder_seg_text(int fd, unsigned char *seg_text,
                         func_t *cur_func_order,
                         int *len, func_t *new_func_order);
 
+/* Update symble table with new function offset */
+void update_sym_tab(int fd, Elf32_Ehdr *ehdr,
+                        func_t *new_funcs, int len);
+
 /** Returns a list of all the functions from text section
  *  
  *  param: fd - file descriptor of the ELF binary file
