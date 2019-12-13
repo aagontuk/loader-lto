@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "loader.h"
+#include "freorder.h"
 
 Elf32_Phdr get_seg_text_phdr(int fd, Elf32_Ehdr *ehdr){
     int i;
