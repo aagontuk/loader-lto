@@ -41,6 +41,7 @@ int main(int argc, char *argv[]){
    }
 
    funcs = get_func_list(fd, &ehdr, &funcs_len);
+   sort_func_list(funcs, funcs_len);
    print_func_list(funcs, funcs_len);
    write_funcs_to_file(funcs, funcs_len, "funcs.txt");
 }
