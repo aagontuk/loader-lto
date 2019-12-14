@@ -186,6 +186,9 @@ func_t *get_func_list(int fd, Elf32_Ehdr *ehdr, int *len){
     int text_start = text_shdr.sh_offset;
     int text_end = text_start + text_shdr.sh_size;
 
+    /* initial length */
+    *len = 0;
+
     for(int i = 0; i < sym_num; i++){
         read(fd, &sym, sizeof(Elf32_Sym));
         if(ELF32_ST_TYPE(sym.st_info) == STT_FUNC && sym.st_value >= text_start && sym.st_value <= text_end){
