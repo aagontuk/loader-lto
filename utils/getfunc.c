@@ -59,16 +59,6 @@ int write_funcs_to_file(func_t *funcs, int len, char *fname){
         buf = funcs[i].name;
         nbytes += write(fd, buf, strlen(buf));
         nbytes += write(fd, "\n", 1);
-        
-        /*
-        if(i < len - 1){
-            nbytes += write(fd, buf, strlen(buf));
-            nbytes += write(fd, "\n", 1);
-        }
-        else{
-            nbytes += write(fd, buf, strlen(buf));
-        }
-        */
     }
 
     return nbytes;
