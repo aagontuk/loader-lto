@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "freorder.h"
 
+func_t *get_func_from_file(char *name, int *len);
+
 int main(int argc, char *argv[]){
     int fd; 
     int nbytes;
@@ -13,7 +15,7 @@ int main(int argc, char *argv[]){
     Elf32_Shdr *sec_text_shdr = malloc(sizeof(Elf32_Shdr));
     unsigned char *text_segment;
 
-    if(argc == 2){
+    if(argc == 3){
         if((fd = open(argv[1], O_RDWR)) != -1){
             nbytes = read(fd, &ehdr, sizeof(Elf32_Ehdr));   
 
@@ -34,12 +36,16 @@ int main(int argc, char *argv[]){
             funcs = get_func_list(fd, &ehdr, &funcs_len);
             sort_func_list(funcs, funcs_len);
 
-            func_t new_funcs[] = {{"__x86.get_pc_thunk.bx", 0},
-                {"deregister_tm_clones", 0}, {"register_tm_clones", 0},
-                {"__do_global_dtors_aux", 0}, {"frame_dummy", 0},
-                {"__x86.get_pc_thunk.dx", 0}, {"main", 0}, {"t_func_2", 0},
-                {"t_func_1", 0}, {"__x86.get_pc_thunk.ax", 0}};
+            int new_funcs_len;
+            func_t *new_funcs = get_func_from_file(argv[2],
+                    &new_funcs_len);
 
+            if(funcs_len != new_funcs_len){
+                printf("Number of functions in %s", argv[2]);
+                printf("match with number of functions in");
+                printf("text section");
+            }
+            
             reorder_seg_text(fd, text_segment, &seg_text_phdr,
                     sec_text_shdr, funcs, &funcs_len, new_funcs);
             
@@ -51,6 +57,70 @@ int main(int argc, char *argv[]){
         }
     }
     else{
-        printf("usage: loader ELF_FILE\n");
+        printf("usage: loader ELF_FILE FUNC_FILE\n");
     }
+}
+
+func_t *get_func_from_file(char *name, int *len){
+    FILE *fp;
+    int fsize;
+    func_t *funcs = NULL;
+
+    if((fp = fopen(name, "r")) == NULL){
+        perror(name);
+        exit(EXIT_FAILURE);
+    }
+
+    /* calc file size */
+    fseek(fp, 0, SEEK_END);
+    fsize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    
+    /* empty file */
+    if(!fsize){
+        printf("%s is empty\n", name);
+        exit(EXIT_FAILURE);
+    }
+
+    /* read file */
+    char *buf = malloc(fsize + 1);
+    fread(buf, 1, fsize, fp);
+    fclose(fp);
+    buf[fsize] = '\0';
+    
+    /* 
+     * calc number of functions in file
+     *
+     * replace new lines with null to use the file content
+     * as string table.
+     */
+    int nfunc = 0;
+    int index[1024];
+    int i = 0;
+    int j = 0;
+
+    index[0] = 0;
+    while(*buf){
+        if(*buf == '\n'){
+            index[++j] = i + 1;
+            *buf = '\0';
+            nfunc++; 
+        }
+        buf++;
+        i++;
+    }
+
+    buf -= fsize;
+
+    /* allocate memory for funcs */
+    funcs = malloc(sizeof(func_t) * nfunc);
+    
+    for(i = 0; i < nfunc; i++){
+        funcs[i].name = buf + index[i];
+        funcs[i].offset = 0;
+    }
+
+    *len = nfunc;
+
+    return funcs;
 }
