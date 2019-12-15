@@ -9,3 +9,5 @@ libtest.so: libtest.c
 main: main.c
 	gcc $(CFLAGS) -L$(LIBDIR) $< -o $@ -ltest
 	
+clean:
+	rm -rf libtest.so main
