@@ -1,7 +1,5 @@
-#include <stdio.h>
-
-void hello(char *msg){
-    printf("%s\n", msg);
+int hello(int a){
+    return a;
 }
 
 int sum(int a, int b){

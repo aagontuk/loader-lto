@@ -1,10 +1,6 @@
-#include <stdio.h>
-
-extern void hello(char *);
+extern int hello(int);
 extern int sum(int, int);
 
 int main(int argc, char *argv[]){
-    hello("hello, world"); 
-    printf("%d\n", sum(10, 20));
-    return 0;
+    return hello(10) + sum(20, 30);
 }
