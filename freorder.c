@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -245,4 +246,87 @@ void print_hex(const unsigned char *content, int len){
    }
 
    printf("\n");
+}
+
+func_t *get_func_from_file(char *name, int *len){
+    FILE *fp;
+    int fsize;
+    func_t *funcs = NULL;
+
+    if((fp = fopen(name, "r")) == NULL){
+        perror(name);
+        exit(EXIT_FAILURE);
+    }
+
+    /* calc file size */
+    fseek(fp, 0, SEEK_END);
+    fsize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    
+    /* empty file */
+    if(!fsize){
+        printf("%s is empty\n", name);
+        exit(EXIT_FAILURE);
+    }
+
+    /* read file */
+    char *buf = malloc(fsize + 1);
+    fread(buf, 1, fsize, fp);
+    fclose(fp);
+    buf[fsize] = '\0';
+    
+    /* 
+     * calc number of functions in file
+     *
+     * replace new lines with null to use the file content
+     * as string table.
+     */
+    int nfunc = 0;
+    int index[1024];
+    int i = 0;
+    int j = 0;
+
+    index[0] = 0;
+    while(*buf){
+        if(*buf == '\n'){
+            index[++j] = i + 1;
+            *buf = '\0';
+            nfunc++; 
+        }
+        buf++;
+        i++;
+    }
+
+    buf -= fsize;
+
+    /* allocate memory for funcs */
+    funcs = malloc(sizeof(func_t) * nfunc);
+    
+    for(i = 0; i < nfunc; i++){
+        funcs[i].name = buf + index[i];
+        funcs[i].offset = 0;
+    }
+
+    *len = nfunc;
+
+    return funcs;
+}
+
+int write_funcs_to_file(func_t *funcs, int len, char *fname){
+    int fd = open(fname, O_CREAT | O_WRONLY, 0644);
+    char *buf;
+    int nbytes = 0;
+
+    if(fd == -1){
+        perror("freorder");
+        return -1;
+    }
+
+    for(int i = 0; i < len; i++){
+        buf = funcs[i].name;
+        nbytes += write(fd, buf, strlen(buf));
+        nbytes += write(fd, "\n", 1);
+    }
+
+    return nbytes;
 }

@@ -48,4 +48,7 @@ int search_func_in_list(func_t *funcs, int len, const char *key);
 /* Prints raw bytes in stdout */
 void print_hex(const unsigned char *content, int len);
 
+func_t *get_func_from_file(char *name, int *len);
+int write_funcs_to_file(func_t *funcs, int len, char *fname);
+
 #endif

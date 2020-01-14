@@ -244,6 +244,7 @@ void *load_file(const char *name, size_t *fsize){
     *fsize = file_sz(fp);
     char *buff = malloc(*fsize);
     fread(buff, 1, *fsize, fp);
+    fclose(fp);
 
     return buff;
 }
@@ -256,7 +257,9 @@ int write_file(char *elf_file, int fsize, char *name){
         exit(EXIT_FAILURE);
     }
 
-    return fwrite(elf_file, 1, fsize, fp);
+    int nbytes = fwrite(elf_file, 1, fsize, fp);
+    fclose(fp);
+    return nbytes;
 }
 
 size_t file_sz(FILE *fp){
