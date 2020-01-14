@@ -16,6 +16,9 @@ size_t file_sz(FILE *fp);
 /* Loads file into memory */
 void *load_file(const char *name, size_t *fsize);
 
+/* Write data to file */
+int write_file(char *elf_file, int fsize, char *name);
+
 /* 
  * Maps loadable segments into memory and returns
  * pointer to memory
@@ -45,6 +48,9 @@ void *find_sym(const char *name, Elf32_Shdr *shdr,
 int sec_index_from_name(char *elf_file,
                         Elf32_Ehdr *ehdr,
                         char *name);
+
+/* Returns section header */
+Elf32_Shdr *sec_from_name(char *elf_file, char *name);
 
 /* Prints GOT */
 void print_got(char *bin_file);

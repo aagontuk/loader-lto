@@ -204,6 +204,19 @@ int sec_index_from_name(char *elf_file,
     return -1;
 }
 
+Elf32_Shdr *sec_from_name(char *elf_file, char *name){
+    Elf32_Ehdr *ehdr = NULL;
+    Elf32_Shdr *shdr = NULL;
+    int index;
+
+    ehdr = (Elf32_Ehdr *)elf_file;
+
+    index = sec_index_from_name(elf_file, ehdr, name);
+    shdr = (Elf32_Shdr *)(elf_file + ehdr->e_shoff);
+
+    return shdr + index;
+}
+
 void *find_sym(const char *name, Elf32_Shdr *shdr,
         const char *strtbl, const char *elf, const char *mem){
         
@@ -233,6 +246,17 @@ void *load_file(const char *name, size_t *fsize){
     fread(buff, 1, *fsize, fp);
 
     return buff;
+}
+
+int write_file(char *elf_file, int fsize, char *name){
+    FILE *fp;
+    
+    if((fp = fopen(name, "wb")) == NULL){
+        perror(name);
+        exit(EXIT_FAILURE);
+    }
+
+    return fwrite(elf_file, 1, fsize, fp);
 }
 
 size_t file_sz(FILE *fp){
