@@ -3,15 +3,10 @@
  * section. And writes them to a file
  */
 
-#include <unistd.h>
-#include <fcntl.h>
-#include <elf.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../freorder.h"
-
-int write_funcs_to_file(func_t *funcs, int len, char *fname);
+#include "../loader.h"
 
 int main(int argc, char *argv[]){
     if(argc != 2){
@@ -19,48 +14,23 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
-    Elf32_Ehdr ehdr;
-    func_t *funcs;
-    int funcs_len;
-    int nbytes;
-
-    /* open elf file */
-    int fd = open(argv[1], O_RDONLY);
-
-    if(fd == -1){
-        perror("getfunc");
-        exit(EXIT_FAILURE);
-    }
-
-    /* read elf header */
-    nbytes = read(fd, &ehdr, sizeof(Elf32_Ehdr));
+    char *name = malloc(strlen(argv[1]) + 4);
+    strcpy(name, argv[1]);
+    strcat(name, ".txt");
     
-    if(nbytes == -1){
-        perror("getfunc");
-        exit(EXIT_FAILURE);
-   }
+    char *elf_file = NULL;
+    size_t fsize;
+    func_t *functions;
+    int func_len;
 
-   funcs = get_func_list(fd, &ehdr, &funcs_len);
-   sort_func_list(funcs, funcs_len);
-   print_func_list(funcs, funcs_len);
-   write_funcs_to_file(funcs, funcs_len, "funcs.txt");
-}
+    elf_file = load_file(argv[1], &fsize);
 
-int write_funcs_to_file(func_t *funcs, int len, char *fname){
-    int fd = open(fname, O_CREAT | O_WRONLY, 0644);
-    char *buf;
-    int nbytes = 0;
+    functions = get_func_list(elf_file, &func_len);
+    sort_func_list(functions, func_len);
+    write_funcs_to_file(functions, func_len, name);
 
-    if(fd == -1){
-        perror("getfunc");
-        return -1;
-    }
+    free(functions);
+    free(name);
 
-    for(int i = 0; i < len; i++){
-        buf = funcs[i].name;
-        nbytes += write(fd, buf, strlen(buf));
-        nbytes += write(fd, "\n", 1);
-    }
-
-    return nbytes;
+    return 0;
 }

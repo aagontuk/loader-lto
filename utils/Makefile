@@ -1,5 +1,5 @@
-CSOURCES = getfunc.c ../freorder.c
-CHEADERS = ../freorder.h
+CSOURCES = getfunc.c ../freorder.c ../loader.c
+CHEADERS = ../freorder.h ../loader.h
 
 OBJ = ${CSOURCES:.c=.o}
 
