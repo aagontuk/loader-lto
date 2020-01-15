@@ -5,3 +5,7 @@ int hello(int a){
 int sum(int a, int b){
     return a + b;
 }
+
+void other(void){
+    
+}
