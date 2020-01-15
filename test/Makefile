@@ -10,4 +10,4 @@ main: main.c
 	gcc $(CFLAGS) -L$(LIBDIR) $< -o $@ -ltest
 	
 clean:
-	rm -rf libtest.so main
+	rm -rf libtest.so main *.txt
