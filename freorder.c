@@ -154,6 +154,24 @@ void update_sym_tab(char *elf_file, func_t *new_funcs, int len){
             sym[i].st_value = new_funcs[index].offset;
          }
     }
+    
+    // Change offset in dynamic symbol table
+    sym_shdr = sec_from_name(elf_file, ".dynsym");
+    strtab_shdr = sec_from_name(elf_file, ".dynstr");
+    sym = (Elf32_Sym *)(elf_file + sym_shdr->sh_offset);
+    strtab = elf_file + strtab_shdr->sh_offset;
+    sym_num = sym_shdr->sh_size / sizeof(Elf32_Sym);
+
+    for(int i = 0; i < sym_num; i++){
+        char *fun_name = strtab + sym[i].st_name; 
+        int index = search_func_in_list(new_funcs, len,
+                                            fun_name);
+
+        if(index >= 0){
+            printf("dynsym: %s\n", fun_name);
+            sym[i].st_value = new_funcs[index].offset;
+        }
+    }
 }
 
 func_t *get_func_list(char *elf_file, int *len){
