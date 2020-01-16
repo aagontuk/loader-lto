@@ -67,14 +67,19 @@ void *load_bin_image(char *elf_file, size_t size){
    return entry; 
 }
 
-void load_sh_lib_image(char *lib_file, size_t size,
-                        lib_func_t *funcs, int nfunc){
+lib_func_t *load_sh_lib_image(char *lib_file, size_t size,
+                                int *nfunc){
     
     Elf32_Ehdr *ehdr = NULL;
     Elf32_Shdr *shdr = NULL;
+    Elf32_Shdr *dyn_shdr = NULL;
+    Elf32_Sym *sym = NULL;
     char *exec = NULL;
     char *strtab = NULL;
+    char *dyn_strtab = NULL;
+    char *sym_name = NULL;
     Elf32_Addr addr = 0;
+    int nsym = 0;
 
     ehdr = (Elf32_Ehdr *)lib_file;
 
@@ -84,18 +89,52 @@ void load_sh_lib_image(char *lib_file, size_t size,
     /* Find fuctions */
     shdr = (Elf32_Shdr *)(lib_file + ehdr->e_shoff);
 
+    // Load symble table
     int index = sec_index_from_name(lib_file, ehdr,
                                     ".symtab");
     
     strtab = (char *)(lib_file + shdr[shdr[index].sh_link].sh_offset);
 
-    for(int i = 0; i < nfunc; i++){
-        addr = (Elf32_Addr)find_sym(funcs[i].name,
-                                    shdr + index,
-                                    strtab, lib_file, exec);
+    // Load dynamic symbols
+    dyn_shdr = sec_from_name(lib_file, ".dynsym");
+    sym = (Elf32_Sym *)(lib_file + dyn_shdr->sh_offset);
+    nsym = dyn_shdr->sh_size / sizeof(Elf32_Sym);
 
-        funcs[i].addr = addr;
+    // Load dynamic string table
+    dyn_shdr = sec_from_name(lib_file, ".dynstr");
+    dyn_strtab = lib_file + dyn_shdr->sh_offset;
+
+    *nfunc = 0;
+    int j = 0;
+    
+    lib_func_t *funcs = (lib_func_t *)malloc(sizeof(lib_func_t) * nsym);
+
+    for(int i = 0; i < nsym; i++){
+        if(ELF32_ST_TYPE((sym + i)->st_info) == STT_FUNC &&
+            ELF32_ST_BIND((sym + i)->st_info) == STB_GLOBAL){
+        
+            sym_name = dyn_strtab + (sym + i)->st_name;
+            addr = (Elf32_Addr)find_sym(sym_name,
+                                      shdr + index,
+                                      strtab, lib_file, exec);
+
+            if(addr){
+                *nfunc += 1;
+                funcs[*nfunc - 1].name = sym_name;
+                funcs[*nfunc - 1].addr = addr;
+            }
+
+        }
     }
+
+    return funcs;
+}
+
+lib_func_t *get_bin_functions(char *bin_file, int *nfunc){
+    lib_func_t *functions = NULL;
+    *nfunc = 0;
+
+    return functions;
 }
 
 void resolve_elf_got(char *bin_file, size_t fsize,

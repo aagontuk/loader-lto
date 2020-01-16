@@ -11,8 +11,9 @@ int main(int argc, char *argv[], char *envp[]){
 
     size_t fsize_elf;
     size_t fsize_lib;
-    lib_func_t funcs[] = {{"hello", 0},
-                          {"sum", 0}};
+    lib_func_t *lib_funcs;
+    int func_len;
+
     func_t *functions;
     int length;
     
@@ -45,22 +46,24 @@ int main(int argc, char *argv[], char *envp[]){
     // write modified library to file
     write_file(sh_lib_file, fsize_lib, "test/libtest-re.so");
 
-    /* load library and get function addresses */
-    load_sh_lib_image(sh_lib_file, fsize_lib, funcs, 2);
+    // load library and get function addresses
+    lib_funcs = load_sh_lib_image(sh_lib_file, fsize_lib, &func_len);
 
     printf("\nDynamic address of functions:\n");
-    printf("%s: %x\n", funcs[0].name, funcs[0].addr);
-    printf("%s: %x\n", funcs[1].name, funcs[1].addr);
+    for(int i = 0; i < func_len; i++){
+        printf("%s: %x\n", lib_funcs[i].name, lib_funcs[i].addr);
+    }
     printf("\n");
 
-    /* resolve ELF GOT */
-    resolve_elf_got(elf_file, fsize_elf, funcs, 2);
+    // resolve ELF GOT
+    resolve_elf_got(elf_file, fsize_elf, lib_funcs, func_len);
 
-    /* run elf */
+    // run elf
     int (*entry)(int, char **, char **);
     entry = load_bin_image(elf_file, fsize_elf);
     printf("\nbin entry: %p\n", entry);
 
+    free(lib_funcs);
     free(elf_file);
     free(sh_lib_file);
 

@@ -32,8 +32,11 @@ void *load_bin_image(char *elf_file, size_t size);
  * Loads an ELF shared library into memory and returns loaded
  * address of all the functions
  */
-void load_sh_lib_image(char *lib_file, size_t size,
-                            lib_func_t *funcs, int nfunc);
+lib_func_t *load_sh_lib_image(char *lib_file, size_t size,
+                                int *nfunc);
+
+/* Find library functions that are used in binary */
+lib_func_t *get_bin_functions(char *bin_file, int *nfunc);
 
 /* Resolves function addresses in GOT */
 void resolve_elf_got(char *bin_file, size_t size,
