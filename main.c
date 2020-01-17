@@ -27,13 +27,31 @@ int main(int argc, char *argv[], char *envp[]){
     print_func_list(functions, length);
     free(functions);
     functions = NULL;
+    
+    // collect call graph for current order
+    printf("\nCall graph:\n");
+    call_graph_t *cgraph = get_call_graph(sh_lib_file);
+    for(int i = 0; i < length; i++){
+        if(cgraph[i].ins_val){
+            printf("name: %s\tcalls: %s\toff: %x\tval: %x\n",
+                    cgraph[i].fname,
+                    cgraph[i].cfname,
+                    cgraph[i].ins_off,
+                    cgraph[i].ins_val);
+        } 
+    }
+    printf("\n");
 
     // reorder library functions in new order
     functions = get_func_from_file(argv[3], &length);
     reorder_seg_text(sh_lib_file, functions);
     update_sym_tab(sh_lib_file, functions, length);
+    printf("Resolve function:\n");
+    resolve_func_calls(sh_lib_file, cgraph);
     free(functions);
     functions = NULL;
+    free(cgraph);
+    cgraph = NULL;
     
     // updated function order
     functions = get_func_list(sh_lib_file, &length);

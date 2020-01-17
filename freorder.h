@@ -9,8 +9,20 @@ typedef struct{
    int offset; 
 } func_t;
 
+typedef struct{
+    char *fname;
+    char *cfname;
+    int ins_off;
+    int ins_val;
+} call_graph_t;
+
 /* Returns program header of the segment containg text section */
 Elf32_Phdr *get_seg_text_phdr(char *elf_file);
+
+/* Return call graph */
+call_graph_t *get_call_graph(char *elf_file);
+
+void resolve_func_calls(char *elf_file, call_graph_t *cgraph);
 
 /** Re-orders text segment according to given function order
  *

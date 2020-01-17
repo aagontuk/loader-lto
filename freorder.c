@@ -3,8 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "loader.h"
 #include "freorder.h"
+
+void find_call(char *elf_file, int start, int end,
+                int *nxt_ins_off, int *fun_off);
+
+char *sym_from_offset(char *elf_file, int offset);
+
+call_graph_t *search_func_in_graph(const char *fname,
+                                    call_graph_t *cgraph,
+                                    int nfunc);
 
 Elf32_Phdr *get_seg_text_phdr(char *elf_file){
     int i;
@@ -35,6 +45,137 @@ Elf32_Phdr *get_seg_text_phdr(char *elf_file){
                 return phdr + i; 
             }
         }
+    }
+
+    return NULL;
+}
+
+call_graph_t *get_call_graph(char *elf_file){
+    Elf32_Shdr *text_shdr;
+    func_t *funcs;
+    int funcs_len;
+    int fstart;
+    int textend;
+    int fend;
+    int ins_off = 0;
+    int ins_val = 0;
+
+    // find end of text sections
+    text_shdr = sec_from_name(elf_file, ".text");
+    textend = text_shdr->sh_offset + text_shdr->sh_size - 1;
+
+    funcs = get_func_list(elf_file, &funcs_len);
+    sort_func_list(funcs, funcs_len);
+    
+    call_graph_t *cgraph = malloc(sizeof(call_graph_t) *
+                                        funcs_len);
+
+    // find calls in functions in text section
+    for(int i = 0; i < funcs_len; i++){
+        if(i < (funcs_len - 1)){
+            fstart = funcs[i].offset;
+            fend = funcs[i + 1].offset - 1;
+        }
+        else{
+            fstart = funcs[i].offset;
+            fend = textend;
+        }
+         
+        find_call(elf_file, fstart, fend, &ins_off, &ins_val);
+        
+        cgraph[i].fname = funcs[i].name;
+        cgraph[i].ins_off = ins_off; // 0 if no call
+        cgraph[i].ins_val = ins_val; // 0 if no call
+
+        if(ins_val){
+            cgraph[i].cfname =
+                sym_from_offset(elf_file, fstart + ins_off + ins_val + 4);
+        }
+        else{
+            cgraph[i].cfname  = "";
+        }
+    }
+
+    free(funcs);
+    return cgraph;
+}
+
+void find_call(char *elf_file, int start, int end,
+                    int *ins_off, int *ins_val){
+    
+    unsigned char *byte;
+    *ins_off = 0;
+    *ins_val = 0;
+    
+    for(int i = start; i <= end; i++){
+        byte = (unsigned char *)elf_file + i;
+        if((int)(*byte) == 0xe8){
+            *ins_val = *(int *)(elf_file + i + 1);
+            *ins_off = (i + 1) - start;
+        }
+    }
+}
+
+char *sym_from_offset(char *elf_file, int offset){
+    Elf32_Shdr *shdr = NULL;
+    Elf32_Sym *sym = NULL;
+    char *strtab = NULL;
+    int nsym = 0;
+
+    shdr = sec_from_name(elf_file, ".symtab");
+    sym = (Elf32_Sym *)(elf_file + shdr->sh_offset);
+    nsym = shdr->sh_size / sizeof(Elf32_Sym);
+
+    shdr = sec_from_name(elf_file, ".strtab");
+    strtab = elf_file + shdr->sh_offset;
+
+    for(int i = 0; i < nsym; i++){
+        if((sym[i].st_value) == offset){
+            return strtab + sym[i].st_name;
+        }
+    }
+
+    return NULL;
+}
+
+void resolve_func_calls(char *elf_file, call_graph_t *cgraph){
+    func_t *funcs = NULL;
+    int nfunc = 0;
+    call_graph_t *fcall = NULL;
+    int index = 0;
+    int offset = 0;
+
+    funcs = get_func_list(elf_file, &nfunc);
+    for(int i = 0; i < nfunc; i++){
+        // find the function's call graph
+        fcall = search_func_in_graph(funcs[i].name, cgraph,
+                                        nfunc);
+
+        // calculate offset of the called function
+        if(fcall->ins_val){
+            index = search_func_in_list(funcs, nfunc,
+                                            fcall->cfname);
+            offset = funcs[index].offset - (funcs[i].offset + fcall->ins_off + 4);
+        
+            // fix offset
+            if(offset != fcall->ins_val){
+                printf("changing offset of %s from %x to %x\n", fcall->fname, fcall->ins_val, offset);
+                *(int *)(elf_file + (funcs[i].offset + fcall->ins_off)) = offset;
+            }
+        }
+    }
+
+    free(funcs);
+}
+
+call_graph_t *search_func_in_graph(const char *fname,
+                                    call_graph_t *cgraph,
+                                    int nfunc){
+
+    for(int i = 0; i < nfunc; i++){
+        if(strcmp(cgraph[i].fname, fname) == 0){
+            return cgraph + i;
+        } 
     }
 
     return NULL;
@@ -168,7 +309,6 @@ void update_sym_tab(char *elf_file, func_t *new_funcs, int len){
                                             fun_name);
 
         if(index >= 0){
-            printf("dynsym: %s\n", fun_name);
             sym[i].st_value = new_funcs[index].offset;
         }
     }
